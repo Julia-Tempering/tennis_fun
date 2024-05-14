@@ -46,7 +46,7 @@ function get_data(
 
     for file in all_csvs
         df = read_csv_with_encoding(file, "ISO-8859-1")
-        allowmissing!(df, :winner_hand)  # Ensure the column can handle Missing values
+        allowmissing!(df, :winner_hand)
         dropmissing!(df, [:winner_name, :loser_name, :score])
 
         if discard_retirements
@@ -56,7 +56,7 @@ function get_data(
         filter!(row -> length(row.score) > 4, df)
         filter!(row -> !in(row.tourney_level, levels_to_drop), df)
 
-        append!(data, df, promote=true)  # Use promote=true to handle type issues
+        append!(data, df, promote=true)  
     end
 
     round_numbers = Dict(
@@ -78,7 +78,6 @@ function get_data(
 
     sort!(data, [:tourney_date, :round_number])
 
-    # Compute points won on serve and serve percentages
     data.pts_won_serve_winner = data.w_1stWon .+ data.w_2ndWon
     data.pts_won_serve_loser = data.l_1stWon .+ data.l_2ndWon
     data.pts_played_serve_winner = data.w_svpt
