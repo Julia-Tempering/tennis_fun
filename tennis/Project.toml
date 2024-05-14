@@ -1,0 +1,11 @@
+[deps]
+BridgeStan = "c88b6f0a-829e-4b0b-94b7-f06ab5908f5a"
+CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
+DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
+Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
+Glob = "c27321d9-0574-5035-807b-f59d2c89b15c"
+InferenceReport = "e5554034-be14-491c-aa1c-9e5f4a9f7142"
+JSON = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
+Pigeons = "0eb8d820-af6a-4919-95ae-11206f830c31"
+ScikitLearn = "3646fa90-6ef7-5e7e-9f22-8aca16db6324"
+StringEncodings = "69024149-9ee7-55f6-a4c4-859efe599b68"
