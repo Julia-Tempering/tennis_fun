@@ -34,6 +34,7 @@ stan_data = [
 
 print("pigeons start")
 
+invlogit(z::Real) = 1/(1+exp(-clamp(z,-709,709)))
 
 struct MyLogPotential
     n_matches::Int
@@ -43,7 +44,7 @@ struct MyLogPotential
 end
 
 function (log_potential::MyLogPotential)(params)
-    player_sd = params[log_potential.n_players + 1]
+    player_sd = 1 #params[log_potential.n_players + 1]
     player_skills_raw = params[1:log_potential.n_players]
     #player_skills_raw, player_sd = params
     log_likelihood = 0
@@ -56,9 +57,9 @@ function (log_potential::MyLogPotential)(params)
         #dist = Distributions.BernoulliLogit(player_skills[log_potential.winner_ids[n]] - 
         #player_skills[log_potential.loser_ids[n]])
 
-        pred = Distributions.Logistic(player_skills[log_potential.winner_ids[n]] - 
+        pred = invlogit(player_skills[log_potential.winner_ids[n]] - 
             player_skills[log_potential.loser_ids[n]])
-        log_likelihood += log(pred)#Distributions.logpdf(dist, 1)
+        log_likelihood += log(pred)
     end
     lp = 0
     for i in 1:log_potential.n_players
@@ -68,7 +69,7 @@ function (log_potential::MyLogPotential)(params)
 end
 function Pigeons.initialization(log_potential::MyLogPotential, rng::AbstractRNG, _::Int64) 
     player_skills_raw = randn(rng, log_potential.n_players)
-    player_sd = abs(randn(rng, Float64))
+    player_sd = 1#abs(randn(rng, Float64))
     print(player_sd)
     params = push!(player_skills_raw, player_sd)
     
@@ -76,7 +77,7 @@ function Pigeons.initialization(log_potential::MyLogPotential, rng::AbstractRNG,
 end
 function Pigeons.sample_iid!(log_potential::MyLogPotential, replica, shared)
     rng = replica.rng
-    new_state = push!(randn(rng, log_potential.n_players), abs(randn(rng, Float64)))
+    new_state = push!(randn(rng, log_potential.n_players), 1)#abs(randn(rng, Float64)))
     replica.state = new_state
 end
 
