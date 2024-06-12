@@ -12,8 +12,6 @@ using BenchmarkTools
 using Profile
 using PProf
 
-
-
 #stan_file = "./model/model.stan"
 
 
@@ -39,18 +37,17 @@ function (log_potential::MyLogPotential)(params)
     if(player_sd < 0)
         player_sd = 0
     end
-
-    player_skills = player_skills_raw * player_sd
+    #temp .= @view (player_skills .* player_sd)[1:log_potential.n_players]
     for n in 1:log_potential.n_matches
         #dist = Distributions.BernoulliLogit(player_skills[log_potential.winner_ids[n]] - 
         #player_skills[log_potential.loser_ids[n]])
 
-        log_likelihood += log(invlogit(player_skills[log_potential.winner_ids[n]] - 
-        player_skills[log_potential.loser_ids[n]]))
+        log_likelihood += log(invlogit(player_skills_raw[log_potential.winner_ids[n]].*player_sd - 
+        player_skills_raw[log_potential.loser_ids[n]].*player_sd))
     end
     lp = 0
     for i in 1:log_potential.n_players
-        lp -= 0.5*player_skills[i]^2
+        lp -= 0.5*(player_skills_raw[i].*player_sd)^2
     end
     return (log_likelihood + player_sd*lp)
 end
@@ -59,12 +56,11 @@ function Pigeons.initialization(log_potential::MyLogPotential, rng::AbstractRNG,
     return params
 end
 function Pigeons.sample_iid!(log_potential::MyLogPotential, replica, shared)
-    rng = replica.rng
+    #rng = replica.rng
     #state = @view replica.state[1:log_potential.n_players]
-    randn!(rng, replica.state)
+    randn!(replica.rng, replica.state)
     #replica.state = new_state
 end
-
 
 
 
@@ -76,7 +72,18 @@ end
 
 #report(pt)
 
-LogDensityProblems.dimension(lp::MyLogPotential) = 5
+stan_data = [
+    17,
+    4,
+    [1,2,1,1,3,1,4,4,2,2,3,2,4,4,3,3,4],
+    [2,1,2,3,1,4,1,1,3,3,2,4,2,2,4,4,3]]
+
+    n_matches = stan_data[1]
+    n_players = stan_data[2]
+    winner_ids = stan_data[3]
+    loser_ids = stan_data[4]
+
+LogDensityProblems.dimension(lp::MyLogPotential) = n_players + 1
 LogDensityProblems.logdensity(lp::MyLogPotential,x) = lp(x)
 
 function main()
@@ -92,18 +99,7 @@ function main()
     #length(player_encoder.classes_),
     #winner_ids .+ 1,
     #loser_ids .+ 1]
-
-    stan_data = [
-    17,
-    4,
-    [1,2,1,1,3,1,4,4,2,2,3,2,4,4,3,3,4],
-    [2,1,2,3,1,4,1,1,3,3,2,4,2,2,4,4,3]]
-
-    n_matches = stan_data[1]
-    n_players = stan_data[2]
-    winner_ids = stan_data[3]
-    loser_ids = stan_data[4]
-
+    
 
     log_potential = MyLogPotential(n_matches, n_players, winner_ids, loser_ids)
     pt = @time pigeons(target=log_potential, reference = MyLogPotential(0,4,[1,1,1,1],[2,2,2,2]),
