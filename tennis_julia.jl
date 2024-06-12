@@ -32,13 +32,13 @@ struct MyLogPotential
 end
 
 function (log_potential::MyLogPotential)(params)
-    player_sd = 1 #params[log_potential.n_players + 1]
+    player_sd = abs(params[log_potential.n_players + 1])
     player_skills_raw = params[1:log_potential.n_players]
     #player_skills_raw, player_sd = params
     log_likelihood = 0
-    #if(player_sd < 0)
-    #    player_sd = 0
-    #end
+    if(player_sd < 0)
+        player_sd = 0
+    end
 
     player_skills = player_skills_raw * player_sd
     for n in 1:log_potential.n_matches
@@ -51,28 +51,23 @@ function (log_potential::MyLogPotential)(params)
     end
     lp = 0
     for i in 1:log_potential.n_players
-        lp -= player_skills[i]^2
+        lp -= 0.5*player_skills[i]^2
     end
     return (log_likelihood + player_sd*lp)
 end
 function Pigeons.initialization(log_potential::MyLogPotential, rng::AbstractRNG, _::Int64) 
-    player_skills_raw = randn(rng, log_potential.n_players)
-    player_sd = 1#abs(randn(rng, Float64))
-    #print(player_sd)
-    #params = push!(player_skills_raw, player_sd)
-    
-    return player_skills_raw#params
+    params = randn(rng, log_potential.n_players+1)
+    return params
 end
 function Pigeons.sample_iid!(log_potential::MyLogPotential, replica, shared)
     rng = replica.rng
-    #new_state = push!(randn(rng, log_potential.n_players), 1)#abs(randn(rng, Float64)))
-    new_state = randn!(rng, replica.state)
-    replica.state = new_state
+    #state = @view replica.state[1:log_potential.n_players]
+    randn!(rng, replica.state)
+    #replica.state = new_state
 end
 
 
-#LogDensityProblems.dimension(lp::MyLogPotential) = n_players
-#LogDensityProblems.logdensity(lp::MyLogPotential,x) = lp(x)
+
 
 
 #pt = pigeons(target = StanLogPotential(stan_file,json_data), 
@@ -81,6 +76,9 @@ end
 
 
 #report(pt)
+
+LogDensityProblems.dimension(lp::MyLogPotential) = 5
+LogDensityProblems.logdensity(lp::MyLogPotential,x) = lp(x)
 
 function main()
     #include("./data/fetch_data.jl")
@@ -107,8 +105,9 @@ function main()
     winner_ids = stan_data[3]
     loser_ids = stan_data[4]
 
+
     log_potential = MyLogPotential(n_matches, n_players, winner_ids, loser_ids)
     pt = @time pigeons(target=log_potential, reference = MyLogPotential(0,4,[1,1,1,1],[2,2,2,2]),
-    record=[traces;record_default()])
-    #report(pt)
+    record=[traces;record_default()], explorer=AutoMALA())
+    report(pt)
 end
