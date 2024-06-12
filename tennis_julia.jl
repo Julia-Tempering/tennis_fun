@@ -33,7 +33,7 @@ end
 
 function (log_potential::MyLogPotential)(params)
     player_sd = abs(params[log_potential.n_players + 1])
-    player_skills_raw = params[1:log_potential.n_players]
+    player_skills_raw = @view params[1:log_potential.n_players]
     #player_skills_raw, player_sd = params
     log_likelihood = 0
     if(player_sd < 0)
@@ -45,9 +45,8 @@ function (log_potential::MyLogPotential)(params)
         #dist = Distributions.BernoulliLogit(player_skills[log_potential.winner_ids[n]] - 
         #player_skills[log_potential.loser_ids[n]])
 
-        pred = invlogit(player_skills[log_potential.winner_ids[n]] - 
-            player_skills[log_potential.loser_ids[n]])
-        log_likelihood += log(pred)
+        log_likelihood += log(invlogit(player_skills[log_potential.winner_ids[n]] - 
+        player_skills[log_potential.loser_ids[n]]))
     end
     lp = 0
     for i in 1:log_potential.n_players
@@ -109,5 +108,5 @@ function main()
     log_potential = MyLogPotential(n_matches, n_players, winner_ids, loser_ids)
     pt = @time pigeons(target=log_potential, reference = MyLogPotential(0,4,[1,1,1,1],[2,2,2,2]),
     record=[traces;record_default()], explorer=AutoMALA())
-    report(pt)
+    #report(pt)
 end
