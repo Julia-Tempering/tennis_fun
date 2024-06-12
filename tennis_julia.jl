@@ -20,7 +20,7 @@ using PProf
 
 #print("pigeons start")
 
-invlogit(z::Real) = 1/(1+exp(-clamp(z,-709,709)))
+invlogit(z::Real) = 1/(1+exp(-z))
 
 struct MyLogPotential
     n_matches::Int
@@ -31,23 +31,19 @@ end
 
 function (log_potential::MyLogPotential)(params)
     player_sd = abs(params[log_potential.n_players + 1])
-    player_skills_raw = @view params[1:log_potential.n_players]
-    #player_skills_raw, player_sd = params
+    #player_skills_raw = @view params[1:log_potential.n_players]
     log_likelihood = 0
     if(player_sd < 0)
         player_sd = 0
     end
-    #temp .= @view (player_skills .* player_sd)[1:log_potential.n_players]
     for n in 1:log_potential.n_matches
-        #dist = Distributions.BernoulliLogit(player_skills[log_potential.winner_ids[n]] - 
-        #player_skills[log_potential.loser_ids[n]])
 
-        log_likelihood += log(invlogit(player_skills_raw[log_potential.winner_ids[n]].*player_sd - 
-        player_skills_raw[log_potential.loser_ids[n]].*player_sd))
+        log_likelihood += log(invlogit(params[log_potential.winner_ids[n]]*player_sd - 
+        params[log_potential.loser_ids[n]]*player_sd))
     end
     lp = 0
     for i in 1:log_potential.n_players
-        lp -= 0.5*(player_skills_raw[i].*player_sd)^2
+        lp -= 0.5*(params[i]*player_sd)^2
     end
     return (log_likelihood + player_sd*lp)
 end
@@ -56,21 +52,8 @@ function Pigeons.initialization(log_potential::MyLogPotential, rng::AbstractRNG,
     return params
 end
 function Pigeons.sample_iid!(log_potential::MyLogPotential, replica, shared)
-    #rng = replica.rng
-    #state = @view replica.state[1:log_potential.n_players]
     randn!(replica.rng, replica.state)
-    #replica.state = new_state
 end
-
-
-
-
-#pt = pigeons(target = StanLogPotential(stan_file,json_data), 
-#   record = [traces;round_trip;record_default()], 
- #   explorer = SliceSampler(w=5))
-
-
-#report(pt)
 
 stan_data = [
     17,
@@ -103,6 +86,6 @@ function main()
 
     log_potential = MyLogPotential(n_matches, n_players, winner_ids, loser_ids)
     pt = @time pigeons(target=log_potential, reference = MyLogPotential(0,4,[1,1,1,1],[2,2,2,2]),
-    record=[traces;record_default()], explorer=AutoMALA())
+    record=[traces;record_default()])#, explorer=AutoMALA())
     #report(pt)
 end
