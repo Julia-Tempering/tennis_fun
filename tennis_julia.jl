@@ -26,15 +26,16 @@ function (log_potential::MyLogPotential)(params)
     #calling struct as function empty function has 2 allocs, anything else has 1 alloc
     #returning a constant (not variable) results in 2 allocs.
     player_sd = abs(params[log_potential.n_players + 1])
-    log_likelihood = 0
+    lp = 0.0
+    log_likelihood = 0.0
     if(player_sd < 0)
-        player_sd = 0
+        player_sd = 0.0
     end
     for n in 1:log_potential.n_matches
         log_likelihood += log(invlogit(params[log_potential.winner_ids[n]]*player_sd - 
         params[log_potential.loser_ids[n]]*player_sd))
     end
-    lp = 0
+    
     for i in 1:log_potential.n_players
         lp -= 0.5*(params[i]*player_sd)^2
     end
@@ -78,7 +79,7 @@ function main()
     
 
     log_potential = MyLogPotential(n_matches, n_players, winner_ids, loser_ids)
-    pt = @time pigeons(target=log_potential, reference = MyLogPotential(0,4,[1,1,1,1],[2,2,2,2]),
+    pt = pigeons(target=log_potential, reference = MyLogPotential(0,4,[1,1,1,1],[2,2,2,2]),
     record=[traces;record_default()])#, explorer=AutoMALA())
     #report(pt)
 end
