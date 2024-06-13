@@ -12,14 +12,6 @@ using BenchmarkTools
 using Profile
 using PProf
 
-#stan_file = "./model/model.stan"
-
-
-
-#json_data = JSON.json(stan_data)
-
-#print("pigeons start")
-
 invlogit(z::Real) = 1/(1+exp(-z))
 
 struct MyLogPotential
@@ -30,14 +22,15 @@ struct MyLogPotential
 end
 
 function (log_potential::MyLogPotential)(params)
+    #empty function still has 1 alloc when calling as struct
+    #calling struct as function empty function has 2 allocs, anything else has 1 alloc
+    #returning a constant (not variable) results in 2 allocs.
     player_sd = abs(params[log_potential.n_players + 1])
-    #player_skills_raw = @view params[1:log_potential.n_players]
     log_likelihood = 0
     if(player_sd < 0)
         player_sd = 0
     end
     for n in 1:log_potential.n_matches
-
         log_likelihood += log(invlogit(params[log_potential.winner_ids[n]]*player_sd - 
         params[log_potential.loser_ids[n]]*player_sd))
     end
@@ -45,11 +38,11 @@ function (log_potential::MyLogPotential)(params)
     for i in 1:log_potential.n_players
         lp -= 0.5*(params[i]*player_sd)^2
     end
+    
     return (log_likelihood + player_sd*lp)
 end
 function Pigeons.initialization(log_potential::MyLogPotential, rng::AbstractRNG, _::Int64) 
-    params = randn(rng, log_potential.n_players+1)
-    return params
+    return randn(rng, log_potential.n_players + 1)
 end
 function Pigeons.sample_iid!(log_potential::MyLogPotential, replica, shared)
     randn!(replica.rng, replica.state)
