@@ -50,10 +50,13 @@ function Pigeons.sample_iid!(log_potential::MyLogPotential, replica, shared)
 end
 
 stan_data = [
-    17,
-    4,
-    [1,2,1,1,3,1,4,4,2,2,3,2,4,4,3,3,4],
-    [2,1,2,3,1,4,1,1,3,3,2,4,2,2,4,4,3]]
+    29,
+    8,
+    [1,1,1,1,1,1,1,2,2,2,2,2,2,3,3,3,3,3,4,4,4,4,5,5,5,6,6,7,8],
+    [2,3,4,5,6,7,8,3,4,5,6,7,8,4,5,6,7,2,5,6,2,1,6,7,8,2,8,1,2]]
+    
+    
+
 
     n_matches = stan_data[1]
     n_players = stan_data[2]
@@ -79,7 +82,7 @@ function main()
     
 
     log_potential = MyLogPotential(n_matches, n_players, winner_ids, loser_ids)
-    pt = pigeons(target=log_potential, reference = MyLogPotential(0,4,[1,1,1,1],[2,2,2,2]),
+    pt = @time pigeons(target=log_potential, reference = MyLogPotential(0,4,[1,1,1,1],[2,2,2,2]),
     record=[traces;record_default()])#, explorer=AutoMALA())
     #report(pt)
 end
