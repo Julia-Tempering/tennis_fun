@@ -11,8 +11,7 @@ using LogDensityProblems
 using BenchmarkTools
 using Profile
 using PProf
-
-invlogit(z::Real) = 1/(1+exp(-z))
+using ProfileCanvas
 
 struct MyLogPotential
     n_matches::Int
@@ -21,18 +20,12 @@ struct MyLogPotential
     loser_ids::Vector{Int}
 end
 
-function (log_potential::MyLogPotential)(params)
-    #empty function still has 1 alloc when calling as struct
-    #calling struct as function empty function has 2 allocs, anything else has 1 alloc
-    #returning a constant (not variable) results in 2 allocs.
+function (log_potential::MyLogPotential)(params::Vector)
     player_sd = abs(params[log_potential.n_players + 1])
     lp = 0.0
     log_likelihood = 0.0
-    if(player_sd < 0)
-        player_sd = 0.0
-    end
     for n in 1:log_potential.n_matches
-        log_likelihood += log(invlogit(params[log_potential.winner_ids[n]]*player_sd - 
+        log_likelihood += log(StatsFuns.logistic(params[log_potential.winner_ids[n]]*player_sd - 
         params[log_potential.loser_ids[n]]*player_sd))
     end
     
@@ -49,19 +42,16 @@ function Pigeons.sample_iid!(log_potential::MyLogPotential, replica, shared)
     randn!(replica.rng, replica.state)
 end
 
-stan_data = [
+const stan_data = [
     29,
     8,
     [1,1,1,1,1,1,1,2,2,2,2,2,2,3,3,3,3,3,4,4,4,4,5,5,5,6,6,7,8],
     [2,3,4,5,6,7,8,3,4,5,6,7,8,4,5,6,7,2,5,6,2,1,6,7,8,2,8,1,2]]
     
-    
-
-
-    n_matches = stan_data[1]
-    n_players = stan_data[2]
-    winner_ids = stan_data[3]
-    loser_ids = stan_data[4]
+const n_matches = stan_data[1]
+const n_players = stan_data[2]
+const winner_ids = stan_data[3]
+const loser_ids = stan_data[4]
 
 LogDensityProblems.dimension(lp::MyLogPotential) = n_players + 1
 LogDensityProblems.logdensity(lp::MyLogPotential,x) = lp(x)
@@ -82,7 +72,7 @@ function main()
     
 
     log_potential = MyLogPotential(n_matches, n_players, winner_ids, loser_ids)
-    pt = @time pigeons(target=log_potential, reference = MyLogPotential(0,4,[1,1,1,1],[2,2,2,2]),
+    pt = @time pigeons(target=log_potential, reference = MyLogPotential(0,8,[1,1,1,1,1,1,1,1],[2,2,2,2,2,2,2,2]),
     record=[traces;record_default()])#, explorer=AutoMALA())
     #report(pt)
 end
