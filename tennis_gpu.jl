@@ -48,7 +48,7 @@ function Pigeons.sample_iid!(log_potential::MyLogPotential, replica, shared)
 end
 function reference(log_potential::MyLogPotential)
     default_winner_ids = CuArray(Float32.(rand(1:log_potential.n_players, log_potential.n_matches)))
-    default_loser_ids = 9 .- default_winner_ids
+    default_loser_ids = (log_potential.n_players + 1) .- default_winner_ids
     return MyLogPotential(log_potential.n_matches, log_potential.n_players, default_winner_ids, default_loser_ids)
 end
 
