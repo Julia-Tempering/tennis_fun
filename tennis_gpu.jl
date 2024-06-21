@@ -31,17 +31,17 @@ struct MyLogPotential
     loser_ids::CuArray{Int,1}
 end
 
-function (log_potential::MyLogPotential)(params::Vector{Float64})
+function (log_potential::MyLogPotential)(params)
     copyto!(PARAMS,params)
     player_sd = Float32(abs(params[log_potential.n_players + 1]))
     LPS .= ((PARAMS[1:log_potential.n_players] .* player_sd) .^ 2) .* 0.5
-    lp = - CUDA.reduce(+,LPS)
+    lp = -CUDA.reduce(+,LPS)
     LL .= log.(invlogit(PARAMS[log_potential.winner_ids] .* player_sd - PARAMS[log_potential.loser_ids] .* player_sd))
     log_likelihood = CUDA.reduce(+,LL)
     return (log_likelihood .+ player_sd*lp)
 end
 function Pigeons.initialization(log_potential::MyLogPotential, rng::AbstractRNG, _::Int64) 
-    return randn(rng, log_potential.n_players + 1)
+    return randn(rng, Float32, log_potential.n_players + 1)
 end
 function Pigeons.sample_iid!(log_potential::MyLogPotential, replica, shared)
     randn!(replica.rng, replica.state)
